@@ -4,10 +4,11 @@
 import numpy as np
 from scipy.io.wavfile import write
 import torch
+from model_ASR_train import train_ASR
 
-def gen_tacotron2(text_filepath):
+def gen_tacotron2(path_ID):
     """ Function: Generate speech from 1 input transcript (collection of sentences) using Tacotron 2.
-        Input:    Transcript file path (string) with 8 digit ID
+        Input:    Transcript file with ID
         Output:   Returns nothing but saves audio file (.wav) in folder 'gen_tacotron2' """
 
     # Load pretrained Tacotron 2, transfer computation to GPU and set model in test mode
@@ -22,7 +23,8 @@ def gen_tacotron2(text_filepath):
     waveglow.eval()
 
     # Load text from file
-    text = open(text_filepath, "r")   #TODO: Update to correct path
+    text_path = "" + path_ID + ".txt"
+    text = open(text_path, "r")
     text = text.readline()
 
     # Preprocessing text
@@ -36,9 +38,9 @@ def gen_tacotron2(text_filepath):
     audio_numpy = audio[0].data.cpu().numpy()
     rate = 22050
 
-    # Save file with correct 8 digit ID
-    file_id = text_filepath[-8:]
-    output_filepath = "gen_tacotron/" + file_id + ".wav"
+    # Save file with correct ID (same as training ID)
+    file_id = text_path.split("/")[-1]
+    output_filepath = "../../Data/gen_tacotron/" + file_id + ".wav"
     write(output_filepath, rate, audio_numpy)
 
 if __name__ == '__main__':
@@ -51,24 +53,26 @@ if __name__ == '__main__':
                              In result of this program is (1) a synthesized speech dataset, (2) a parameter save of the 
                              ASR model and (3) output of best ASR WER through stdout stream. """
 
-    """ Part 1: Define dataset path-files """   # Todo: Update paths below
-    train_paths = ""           # LibriSpeech train (for generating)
-    gen_paths = ""             # Generated data
-    test_paths = ""            # LibriSpeech test  (for validating ASR)
+    """ Part 1: Define dataset file-IDs """
+    train_IDs = "../../Data/LibriSpeech/train.txt"           # LibriSpeech train (for generating)
+    test_IDs = "../../Data/LibriSpeech/evaluation.txt"       # LibriSpeech test  (for validating ASR)
 
     """ Part 2: Generate speech using Tacotron 2 """
-    # Get file with all transcript paths and call the generator routine for each transcript one by one
-    transcript_paths = open(train_paths, "r")  # TODO: Update to correct path
+    # Get all transcript IDs and call the generator routine for each transcript one by one
+    transcript_IDs = open(train_IDs, "r")
     done = False
 
     while not done:
-        # Read 1 transcript and stop if transcript is empty (all transcripts have been read)
-        transcript_path = transcript_paths.readline()
-        if transcript_path == '': break
+        # Read 1 transcript ID and stop if transcript is empty (all transcripts have been read)
+        transcript_ID = transcript_IDs.readline()
+        if transcript_ID == '': break
+
+        # Store transcript path (represents both .wav and .txt)
+        transcript_path = "../../Data/LibriSpeech/data_files/" + transcript_ID
 
         # Generate speech and save
         gen_tacotron2(transcript_path)
 
     """ Part 3: Train and test ASR model """
-    best_wer = train_ASR(gen_paths, test_paths)
-    print("The best WER: {}".format(best_wer))
+    # Pass generated data (same IDs as training data) and test data
+    train_ASR(train_IDs, test_IDs)

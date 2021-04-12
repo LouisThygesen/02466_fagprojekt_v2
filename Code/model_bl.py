@@ -12,5 +12,5 @@ if __name__ == '__main__':
     test_paths = ""   # LibriSpeech test  (for validating ASR)
 
     """ Part 3: Train and test ASR model """
-    best_wer = pretrained_ASR(test_paths)
-    print("The best WER: {}".format(best_wer))
+    pretrained_ASR(test_paths)
+

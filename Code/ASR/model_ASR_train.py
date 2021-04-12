@@ -17,19 +17,18 @@ from asr.utils.training import batch_to_tensor, epochs, Logger
 from asr.utils.text import greedy_ctc
 from asr.utils.metrics import ErrorRateTracker, LossTracker
 
-def train_ASR(trainset, testset):
+def train_ASR(train_IDs, test_IDs):
     """ Function: Train and test ASR model on input datasets
-        Input:    2 txt-files with paths to training and test files (without .wav and .txt). One observation consists of
-                  a transcript (txt-feature) and audio file (wav-target).
+        Input:    2 txt-files with IDs to training and test files. One observation consists of a transcript
+                  (txt-feature) and audio file (wav-target).
         Output:   Return best WER (validation) and save ASR model (model.pt) """
 
-    # Run code on GPU (for CPU: change '0' to '')
+    # Run code on GPU
     os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
     """ Part 1: Load and preprocess data """
-    # Define training and test set
-    train_source = trainset
-    val_source = testset
+    train_source = train_IDs
+    val_source = test_IDs
 
     # BLACK BOX
     spec_preprocessor = SpectrogramPreprocessor(output_format='NFT')
@@ -44,10 +43,10 @@ def train_ASR(trainset, testset):
 
     """ Part 2: Setup model and loss """
     # Create instance of model
-    asr_model = ASRModel().cuda()                  # For CPU: remove .cuda()
+    asr_model = ASRModel().cuda()
 
     # Define loss, optimizer and learning rate scheduler
-    ctc_loss = nn.CTCLoss(reduction='sum').cuda()  # For CPU: remove .cuda()
+    ctc_loss = nn.CTCLoss(reduction='sum').cuda()
     optimizer = torch.optim.Adam(asr_model.parameters(), lr=3e-4)
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=100, eta_min=5e-5)
 
@@ -59,7 +58,6 @@ def train_ASR(trainset, testset):
 
     train_logger = Logger('Training', ctc_metric, wer_metric, cer_metric)
     val_logger = Logger('Validation', ctc_metric, wer_metric, cer_metric)
-    test_logger = Logger('Test', ctc_metric, wer_metric, cer_metric)
 
     def forward_pass(batch):
         (x, x_sl), (y, y_sl) = batch_to_tensor(batch, device='cuda')  # For CPU: change 'cuda' to 'cpu'
@@ -76,9 +74,6 @@ def train_ASR(trainset, testset):
         ctc_metric.update(loss.item(), weight=output_sl.sum().item())
 
         return loss
-
-    # Store best observed WER in 200 epochs
-    best_wer = np.inf
 
     # Run 200 epochs
     for epoch in epochs(200):
@@ -100,9 +95,8 @@ def train_ASR(trainset, testset):
             forward_pass(batch)
 
         # Store best WER and also save best model
-        if wer_metric.running < best_wer:
-            best_wer = wer_metric.running
-            torch.save(model.state_dict(), "./best_ASR_model")
+        best_wer = wer_metric.running
+        torch.save(model.state_dict(), "./best_ASR_model")
 
         if epoch >= 100:
             lr_scheduler.step()
