@@ -16,7 +16,6 @@ def batch_cer(ref_batch, hyp_batch, return_error=True):
     """
     return batch_error_rate(ref_batch, hyp_batch, list, return_error)
 
-
 def batch_wer(ref_batch, hyp_batch, return_error=True):
     """
     Compute the wer for a whole batch.
@@ -31,7 +30,6 @@ def batch_wer(ref_batch, hyp_batch, return_error=True):
     """
     return batch_error_rate(ref_batch, hyp_batch, lambda x: x.split(), return_error)
 
-
 def error_rate(ref, hyp, return_error):
     """
     Compute the normalized edit distance for a reference and hypothesis.
@@ -45,7 +43,6 @@ def error_rate(ref, hyp, return_error):
     edits = editdistance.eval(ref, hyp)
     len_ref = len(ref)
     return edits / len_ref if return_error else (edits, len_ref)
-
 
 def batch_error_rate(ref_batch, hyp_batch, tokenizer, return_error):
     """
@@ -105,7 +102,6 @@ class ErrorRateTracker():
 
     def __call__(self):
         return f"{self.name}={self.running * 100:.{self.precision}f}"
-
 
 class LossTracker():
 

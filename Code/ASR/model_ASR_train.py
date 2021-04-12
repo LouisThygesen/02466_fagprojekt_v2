@@ -95,8 +95,14 @@ def train_ASR(train_IDs, test_IDs):
             forward_pass(batch)
 
         # Store best WER and also save best model
-        best_wer = wer_metric.running
-        torch.save(model.state_dict(), "./best_ASR_model")
+        wer = wer_metric.running
+        cer = cer_metric.running
+        ctc = ctc_metric.running
+
+        best_wer = 1000000
+        if wer < best_wer:
+            best_wer = wer
+            torch.save(model.state_dict(), "./best_ASR_model")
 
         if epoch >= 100:
             lr_scheduler.step()
